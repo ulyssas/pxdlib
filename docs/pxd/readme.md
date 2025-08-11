@@ -4,10 +4,11 @@ This is a description of the reverse-engineered format of Pixelmator Pro. It is 
 
 ## File format
 
-Pixelmator Pro makes use of files with the `.pxd` extension. In truth, these are sneakily folders in disguise, in the same vein as the `.app` files; macOS' Finder pleasantly treats them as if they are files, albeit with the "Show Package Contents" feature to get right into its contents"
+Pixelmator Pro makes use of files with the `.pxd` extension. For older versions (v2.0.6), these are sneakily folders in disguise (macOS Package), similar to `.app` files; macOS' Finder pleasantly treats them as if they are files, albeit with the "Show Package Contents" feature to get right into its contents". For newer versions, it's a zip file with .pxd extension.
 
-- `QuickLook`, a folder containing two auto-generated previews: `Icon.tiff` (small) and `Thumbnail.tiff` (medium);
+- `QuickLook`, a folder containing two auto-generated previews: `Icon.*` (small) and `Thumbnail.*` (medium); Older version uses `tiff`, but newer version uses `webp`.
 - `data`, an optional folder containing an amount of files with UUID names, each containing data corresponding to raster (image) layers;
+data folder contains two types of files: `PTBitmapBuffer` and `OriginalContentSource`. `PTBitmapBuffer` only has UUID for names, but `OriginalContentSource` has `-OriginalContentSource` suffix. `OriginalContentSource` is imported images, so could be PNG or any other formats. However, `PTBitmapBuffer` is proprietary.
 - a fairly large-ish `metadata.info` file.
 
 <a id="sql"></a>
