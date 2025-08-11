@@ -1,6 +1,6 @@
-'''
+"""
 Color adjustments with a wrapper to allow layer.adjusts.x.y = val.
-'''
+"""
 
 # Color adjustments are found using data[k1][k2]. As such,
 # we construct a set of data structs to help facilitate this.
@@ -35,14 +35,17 @@ _KEYS = {
     "w": [1, {"T": 0, "A": 0, "E": 1, "t": 0}],
     "cL": [1, {"a": 1}],
     "B": [1, {"A": 0}],
-    "C": [2, {
-        k: [1, {"d": 0, "p": [[0, 0], [1, 1]], "s": 0, "l": 0, "h": 0}]
-        for k in ("rgb", "l", "r", "g", "b")
-    }],
+    "C": [
+        2,
+        {
+            k: [1, {"d": 0, "p": [[0, 0], [1, 1]], "s": 0, "l": 0, "h": 0}]
+            for k in ("rgb", "l", "r", "g", "b")
+        },
+    ],
     "l": [1, {"c": 0, "h": 0, "E": 1, "A": 0, "B": 0, "e": 0, "s": 0, "b": 0}],
     "m": [1, {}],
     "S": [1, {"i": 0.5, "r": 2.5}],
-    "b": [1, {"i": 1, "t": 0}]
+    "b": [1, {"i": 1, "t": 0}],
 }
 for k, v in _KEYS.items():
     val = {"V": 1, "E": 0}
@@ -55,13 +58,13 @@ _ADJUSTMENTS = {}
 
 
 class ColorAdjustments:
-    '''
+    """
     Color adjustments for a layer.
 
     This should be accessed directly from a layer;
     it is automatically created for one, and should
     not be created by the user.
-    '''
+    """
 
     def __init__(self, layer, data):
         self._layer = layer
@@ -74,7 +77,7 @@ class ColorAdjustments:
         self._layer.adjusts = self
 
     def __repr__(self):
-        # TODO: maybe hide from __repr__ if the effect is disabled!
+        # TODO: maybe hide from __repr__ if the effect is disabled!
         changes = []
         for k1 in _KEYS:
             default = _DEFAULTS[k1]
@@ -89,20 +92,21 @@ class ColorAdjustments:
             for k2, prop2 in _ADJUSTMENTS[k1]._attribs.items():
                 val = v[1].get(k2)
                 if val != default[1].get(k2):
-                    changes.append(f'  .{prop1}.{prop2} = {val}')
+                    changes.append(f"  .{prop1}.{prop2} = {val}")
         if changes:
-            string = '<ColorAdjustments: as listed below>\n'
-            string += '\n'.join(changes)
+            string = "<ColorAdjustments: as listed below>\n"
+            string += "\n".join(changes)
             return string
         else:
-            return '<ColorAdjustments: as default>'
+            return "<ColorAdjustments: as default>"
 
 
 class Attribute(property):
-    '''
+    """
     Auto-generator for a property binding (eg sliders)
     to provide general getter and setter.
-    '''
+    """
+
     def __init__(
         self,
         key,
@@ -110,7 +114,7 @@ class Attribute(property):
         limitdoc=None,  # names for minmax limits
         default: float | int = 0,  # for documenting only
         factor: float | int = 1,  # if data varies more than
-        doc: str = '',  # docs if not a regular slider
+        doc: str = "",  # docs if not a regular slider
     ):
         self._key = key
 
@@ -120,28 +124,29 @@ class Attribute(property):
         def fset(moi, x):
             if limits is not None:
                 if not a <= x <= b:
-                    raise ValueError(f'attribute must be between {a} and {b}.')
+                    raise ValueError(f"attribute must be between {a} and {b}.")
             moi._set(key, x * factor)
 
         if default is not None:
-            doc = f'{doc}, default {default}'
+            doc = f"{doc}, default {default}"
 
         if limits:
             a, b = limits
             if limitdoc:
                 ad, bd = limitdoc
-                doc = f'{a} ({ad}) to {b} ({bd}){doc}'
+                doc = f"{a} ({ad}) to {b} ({bd}){doc}"
             else:
-                doc = f'{a} to {b}{doc}'
+                doc = f"{a} to {b}{doc}"
         fget.__doc__ = doc
 
         property.__init__(self, fget, fset)
 
 
 def adjustment(key, name):
-    '''
+    """
     wrapper to handle binding layer.adjusts.x
-    '''
+    """
+
     def wrapper(cls):
         cls._key = key
         cls._name = name
@@ -152,7 +157,7 @@ def adjustment(key, name):
 
         def setter(self, val):
             raise TypeError(
-                'Cannot define any layer.adjusts.x; try setting layer.adjusts.x.y instead'
+                "Cannot define any layer.adjusts.x; try setting layer.adjusts.x.y instead"
             )
 
         cls._attribs = {}
@@ -164,16 +169,17 @@ def adjustment(key, name):
 
         setattr(ColorAdjustments, name, property(getter, setter))
         return cls
+
     return wrapper
 
 
 class Adjustment:
-    '''
+    """
     A generic color adjustment.
-    '''
+    """
 
-    _key = 'a'
-    _name = 'adjustment'
+    _key = "a"
+    _name = "adjustment"
     _attribs = {}  # data_key: property_name
 
     def __init__(self, adjust):
@@ -187,15 +193,15 @@ class Adjustment:
         for k2, prop2 in self._attribs.items():
             val = v[1][k2]
             if val != default[1][k2]:
-                changes.append(f'  .{prop2} = {val}')
+                changes.append(f"  .{prop2} = {val}")
 
         name = type(self).__name__
         if changes:
-            string = f'<{name}: as listed below>\n'
-            string += '\n'.join('  ' + c for c in changes)
+            string = f"<{name}: as listed below>\n"
+            string += "\n".join("  " + c for c in changes)
             return string
         else:
-            return f'<{name}: as default>'
+            return f"<{name}: as default>"
 
     def _get(self, k2):
         return self.adjust._data[self._key]
@@ -204,93 +210,93 @@ class Adjustment:
         data = self.adjust._data
         ver, val = data[self._key]
         val[k2] = value
-        if 'A' in val:
+        if "A" in val:
             # disable 'auto'
-            val['A'] = 0
+            val["A"] = 0
         if enable_effect:
-            val['E'] = enable_effect
+            val["E"] = enable_effect
         data[self._key] = [ver, val]
         self.adjust._update()
 
     @property
     def enabled(self):
-        '''
+        """
         Whether the adjustment is enabled.
 
         Changing a property automatically enables the entire adjustment.
-        '''
-        return self._get('E')
+        """
+        return self._get("E")
 
     @enabled.setter
     def enabled(self, val):
-        self._set('E', bool(val))
+        self._set("E", bool(val))
 
 
 class Intensity(Adjustment):
-    intensity = Attribute('i', limits=(0, 1), default=1)
+    intensity = Attribute("i", limits=(0, 1), default=1)
 
 
-@adjustment('w', 'white_balance')
+@adjustment("w", "white_balance")
 class WhiteBalance(Adjustment):
-    temperature = Attribute('t', limitdoc=('blue', 'yellow'))
-    tint = Attribute('T', limitdoc=('green', 'purple'))
+    temperature = Attribute("t", limitdoc=("blue", "yellow"))
+    tint = Attribute("T", limitdoc=("green", "purple"))
 
 
-@adjustment('hS', 'color')
+@adjustment("hS", "color")
 class Color(Adjustment):
-    hue = Attribute('h')
-    saturation = Attribute('s')
-    vibrance = Attribute('v')
+    hue = Attribute("h")
+    saturation = Attribute("s")
+    vibrance = Attribute("v")
 
 
-@adjustment('l', 'lightness')
+@adjustment("l", "lightness")
 class Lightness(Adjustment):
-    exposure = Attribute('e', limits=(-2, 2))
-    highlights = Attribute('h', factor=2)
-    shadows = Attribute('s', factor=2)
-    brightness = Attribute('b')
-    black_point = Attribute('B')
+    exposure = Attribute("e", limits=(-2, 2))
+    highlights = Attribute("h", factor=2)
+    shadows = Attribute("s", factor=2)
+    brightness = Attribute("b")
+    black_point = Attribute("B")
 
 
-@adjustment('s', 'sepia')
+@adjustment("s", "sepia")
 class Sepia(Intensity):
     pass
 
 
-@adjustment('f', 'fade')
+@adjustment("f", "fade")
 class Fade(Intensity):
     pass
 
 
-@adjustment('v', 'vignette')
+@adjustment("v", "vignette")
 class Vignette(Adjustment):
-    exposure = Attribute('e', default=0.5)
-    black_point = Attribute('b')
-    softness = Attribute('s', (0, 1), default=1)
+    exposure = Attribute("e", default=0.5)
+    black_point = Attribute("b")
+    softness = Attribute("s", (0, 1), default=1)
 
 
-@adjustment('i', 'invert')
+@adjustment("i", "invert")
 class Invert(Intensity):
     pass
 
 
-@adjustment('S', 'sharpen')
+@adjustment("S", "sharpen")
 class Sharpen(Intensity):
-    radius = Attribute('s', limits=(0, 100), default=2.5)
+    radius = Attribute("s", limits=(0, 100), default=2.5)
 
 
-@adjustment('g', 'grain')
+@adjustment("g", "grain")
 class Grain(Adjustment):
-    intensity = Attribute('i', limits=(0, 1), default=0.5)
-    size = Attribute('s', limits=(0, 2), default=0.25)
+    intensity = Attribute("i", limits=(0, 1), default=0.5)
+    size = Attribute("s", limits=(0, 2), default=0.25)
 
 
 def _document_attribs():
     for k1, adjust in _ADJUSTMENTS.items():
         for k2, funcname in adjust._attribs.items():
             docs = getattr(adjust, funcname).__doc__
-            print(f'- `.{adjust._name}.{funcname}`: {docs} ')
+            print(f"- `.{adjust._name}.{funcname}`: {docs} ")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     _document_attribs()

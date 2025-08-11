@@ -1,6 +1,6 @@
-'''
+"""
 Color and Gradient structures for interacting with PXDFiles.
-'''
+"""
 
 import colorsys
 from typing import Any, Iterable
@@ -12,41 +12,41 @@ from .helpers import num, hexbyte, add_tuple_shortcuts, add_shortcuts
 Number = int | float
 ColorInput = str | Number | tuple
 
-@add_tuple_shortcuts('hsv', ('h', 'sv', 'v'))
-@add_tuple_shortcuts('hls', ('h', 'l', 'sl'))
-@add_tuple_shortcuts('yiq', ('y', 'i', 'q'))
-@add_tuple_shortcuts('rgb', ('r', 'g', 'b'))
-@add_shortcuts({
-    'a': ('alpha', ),
-    'h': ('hue', ),
-    'v': ('val', 'value'),
-    'l': ('lum', 'lumin', 'luminosity'),
-    'r': ('red', ),
-    'g': ('green', ),
-    'b': ('blue', ),
-})
+
+@add_tuple_shortcuts("hsv", ("h", "sv", "v"))
+@add_tuple_shortcuts("hls", ("h", "l", "sl"))
+@add_tuple_shortcuts("yiq", ("y", "i", "q"))
+@add_tuple_shortcuts("rgb", ("r", "g", "b"))
+@add_shortcuts(
+    {
+        "a": ("alpha",),
+        "h": ("hue",),
+        "v": ("val", "value"),
+        "l": ("lum", "lumin", "luminosity"),
+        "r": ("red",),
+        "g": ("green",),
+        "b": ("blue",),
+    }
+)
 class Color:
-    '''
+    """
     A color.
 
     May be instantiated in [0, 255]-space, or in
     [0, 1]-space for various formats defined in colorsys.
-    '''
-    __slots__ = ('R', 'G', 'B', 'A')
+    """
+
+    __slots__ = ("R", "G", "B", "A")
 
     def __hash__(self):
         return hash(str(self))
 
     def __init__(
-        self,
-        R: ColorInput = 0,
-        G: Number = 0,
-        B: Number = 0,
-        A: Number = 255
+        self, R: ColorInput = 0, G: Number = 0, B: Number = 0, A: Number = 255
     ):
-        '''
+        """
         Accepts a hex string, or RGBA values in [0, 255]-space.
-        '''
+        """
         if isinstance(R, Color):
             R, G, B, A = R.R, R.G, R.B, R.a
         elif isinstance(R, (tuple, list)):
@@ -55,15 +55,13 @@ class Color:
             elif len(R) == 4:
                 R, G, B, A = R
             else:
-                raise ValueError('Iterable must be length 3 or 4.')
+                raise ValueError("Iterable must be length 3 or 4.")
         elif isinstance(R, str):
             string = R
-            if string.startswith('#'):
+            if string.startswith("#"):
                 string = string[1:]
             if not len(string) in (6, 8):
-                raise ValueError(
-                    'String colors must be #RRGGBB or #RRGGBBAA.'
-                )
+                raise ValueError("String colors must be #RRGGBB or #RRGGBBAA.")
             R = int(string[0:2], base=16)
             G = int(string[2:4], base=16)
             B = int(string[4:6], base=16)
@@ -76,7 +74,7 @@ class Color:
 
     @classmethod
     def from_rgb(cls, r: Number, g: Number, b: Number, a: Number = 1):
-        return cls(r*255, g*255, b*255, a*255)
+        return cls(r * 255, g * 255, b * 255, a * 255)
 
     @property
     def a(self):
@@ -84,7 +82,7 @@ class Color:
 
     @property
     def rgb(self):
-        return (self.R/255, self.G/255, self.B/255)
+        return (self.R / 255, self.G / 255, self.B / 255)
 
     @rgb.setter
     def rgb(self, val):
@@ -136,7 +134,7 @@ class Color:
         val = hexbyte(self.R) + hexbyte(self.G) + hexbyte(self.B)
         if self.A != 255:
             val += hexbyte(self.A)
-        return '#' + val
+        return "#" + val
 
     def __repr__(self):
         return f"Color('{str(self)}')"
@@ -144,40 +142,34 @@ class Color:
     @classmethod
     def _from_data(cls, data):
         data = verb(data)
-        assert data['m'] == 2
+        assert data["m"] == 2
         # assert data['csr'] == 0
-        return cls.from_rgb(*data['c'])
+        return cls.from_rgb(*data["c"])
 
     def _to_data(self):
-        return [1, {
-            'm': 2, 'csr': 0,
-            'c': self.rgb
-        }]
+        return [1, {"m": 2, "csr": 0, "c": self.rgb}]
 
     def __eq__(self, other):
-        return all([
-            round(a[0]) == round(a[1])
-            for a in zip(tuple(self), tuple(other))
-        ])
+        return all([round(a[0]) == round(a[1]) for a in zip(tuple(self), tuple(other))])
 
 
 class Gradient:
-    '''
+    """
     Gradient of two or more colours.
 
     Contains a list of colors, or a list of (col, x)
     for position x in the range [0, 1].
     Midpoints for the gradient interpolation
     can be provided but default to the position midpoint.
-    '''
+    """
 
-    _default_cols = ['48a0f8' '48a0f800']
+    _default_cols = ["48a0f848a0f800"]
 
     def __init__(
         self,
         *colors: Iterable[tuple[ColorInput, float]],
-        midpoints = None,
-        kind = GradientType.linear
+        midpoints=None,
+        kind=GradientType.linear,
     ):
         if len(colors) == 1 and isinstance(colors[0], (list, tuple)):
             colors = colors[0]
@@ -196,23 +188,20 @@ class Gradient:
         else:
             # no positions, so at equal steps
             self.colors = [
-                (Color(c), i/(len(colors)-1))
-                for i, c in enumerate(colors)
+                (Color(c), i / (len(colors) - 1)) for i, c in enumerate(colors)
             ]
 
         if midpoints is None:
             midpoints = []
             for i in range(len(self.colors) - 1):
                 c1, x1 = self.colors[i]
-                c2, x2 = self.colors[i+1]
-                midpoints.append((x1 + x2)/2)
+                c2, x2 = self.colors[i + 1]
+                midpoints.append((x1 + x2) / 2)
         else:
             M = len(midpoints)
             C = len(self.colors)
             if M != C - 1:
-                raise ValueError(
-                    f'Need {C-1} midpoints, got {M}.'
-                )
+                raise ValueError(f"Need {C - 1} midpoints, got {M}.")
         self.midpoints = midpoints
 
     def is_positions_default(self):
@@ -226,8 +215,8 @@ class Gradient:
     def is_midpoints_default(self):
         for i in range(len(self.colors) - 1):
             c1, x1 = self.colors[i]
-            c2, x2 = self.colors[i+1]
-            m_apparent = (x1 + x2)/2
+            c2, x2 = self.colors[i + 1]
+            m_apparent = (x1 + x2) / 2
             m = self.midpoints[i]
             if m != m_apparent:
                 return False
@@ -237,15 +226,17 @@ class Gradient:
         vals = []
         if self.colors != self._default_cols:
             col_only = self.is_positions_default()
-            vals.append(', '.join([
-                repr(str(c) if col_only else (str(c), x))
-                for c, x in self.colors]))
+            vals.append(
+                ", ".join(
+                    [repr(str(c) if col_only else (str(c), x)) for c, x in self.colors]
+                )
+            )
 
         if not self.is_midpoints_default():
-            vals.append('midpoints=' + str(self.midpoints))
+            vals.append("midpoints=" + str(self.midpoints))
 
         if self.kind != 0:
-            vals.append('kind=' + str(self.kind))
+            vals.append("kind=" + str(self.kind))
 
         return f"{type(self).__name__}({', '.join(vals)})"
 
@@ -253,18 +244,16 @@ class Gradient:
     def _from_data(cls, data):
         data = verb(data)
         # assert data['csr'] == 0
-        colors = [verb(i) for i in data['s']]
-        return cls([
-            (Color.from_rgb(*c), x)
-            for c, x in colors
-        ], midpoints=data['m'], kind=data['t'])
+        colors = [verb(i) for i in data["s"]]
+        return cls(
+            [(Color.from_rgb(*c), x) for c, x in colors],
+            midpoints=data["m"],
+            kind=data["t"],
+        )
 
     def _to_data(self):
-        data: dict[str, Any] = {'csr': 0}
-        data['m'] = list(self.midpoints)
-        data['s'] = [
-            [1, [c.rgb, x]]
-            for c, x in self.colors
-        ]
-        data['t'] = int(self.kind)
+        data: dict[str, Any] = {"csr": 0}
+        data["m"] = list(self.midpoints)
+        data["s"] = [[1, [c.rgb, x]] for c, x in self.colors]
+        data["t"] = int(self.kind)
         return [1, data]

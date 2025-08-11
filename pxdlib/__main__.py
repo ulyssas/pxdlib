@@ -1,8 +1,9 @@
-'''
+"""
 A Swiss Army Knife for Pixelmator Pro documents.
 
 Useful for simple analysis.
-'''
+"""
+
 import argparse
 from typing import Callable, Generator
 
@@ -11,11 +12,12 @@ from .structure import blob
 from .helpers import exit
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('file', help='The .pxd file to operate on')
+parser.add_argument("file", help="The .pxd file to operate on")
 
 
-
-search = parser.add_argument_group('Provide a filter that all actions will only apply to')
+search = parser.add_argument_group(
+    "Provide a filter that all actions will only apply to"
+)
 # search.add_argument('--search',metavar='string', type=str, default=None,
 #                     help='Only operate on layers with names containing'
 #                     ' a given search string.')
@@ -26,104 +28,121 @@ search = parser.add_argument_group('Provide a filter that all actions will only 
 #                     choices='all red orange yellow'
 #                             ' green blue purple gray'.split(),
 #                     help='Only operate on a certain layer tag.')
-search.add_argument('--inside', metavar='layer_name',
-                    help='Only operate on a layer or group by this name.')
+search.add_argument(
+    "--inside",
+    metavar="layer_name",
+    help="Only operate on a layer or group by this name.",
+)
 
 
+info = parser.add_argument_group("Display info in a tree")
+info.add_argument(
+    "--no-indent",
+    dest="indent",
+    action="store_false",
+    help="Do not indent to indicate layer structure",
+)
+info.add_argument(
+    "--layer-info",
+    "-I",
+    action="store_true",
+    help="Show most relevant layer information",
+)
+info.add_argument("--layer-name", "-N", action="store_true", help="Show layer names")
+info.add_argument(
+    "--layer-position", "-P", action="store_true", help="Show layer position and size"
+)
+info.add_argument("--layer-flags", "-F", action="store_true", help="Show layer flags")
+info.add_argument(
+    "--layer-keys",
+    "-K",
+    nargs="*",
+    metavar="KEYS",
+    default=None,
+    help="Show metadata with KEYS (provide `all` for all)",
+)
 
-info = parser.add_argument_group('Display info in a tree')
-info.add_argument(
-    '--no-indent', dest='indent', action='store_false',
-    help='Do not indent to indicate layer structure')
-info.add_argument(
-    '--layer-info', '-I', action='store_true',
-    help='Show most relevant layer information')
-info.add_argument(
-    '--layer-name', '-N', action='store_true',
-    help='Show layer names')
-info.add_argument(
-    '--layer-position', '-P', action='store_true',
-    help='Show layer position and size')
-info.add_argument(
-    '--layer-flags', '-F', action='store_true',
-    help='Show layer flags')
-info.add_argument(
-    '--layer-keys', '-K',
-    nargs='*', metavar='KEYS', default=None,
-    help='Show metadata with KEYS (provide `all` for all)')
 
 def process_display(args):
-    args.do_display = any((
-        args.layer_name,
-        args.layer_info,
-        args.layer_position,
-        args.layer_flags,
-        args.layer_keys,
-    ))
+    args.do_display = any(
+        (
+            args.layer_name,
+            args.layer_info,
+            args.layer_position,
+            args.layer_flags,
+            args.layer_keys,
+        )
+    )
+
     def display(layer: Layer | PXDFile):
         if isinstance(layer, Layer):
             if args.layer_name:
                 yield layer.name
             if args.layer_position:
-                yield '({}, {}), {}×{}'.format(
-                    layer.x, layer.y, layer.width, layer.height)
+                yield "({}, {}), {}×{}".format(
+                    layer.x, layer.y, layer.width, layer.height
+                )
             if args.layer_flags:
                 yield repr(layer._flags)
-        
 
         if args.layer_keys:
+
             def display_blob(k):
                 if isinstance(layer, Layer):
                     v = layer._info(k)
                 else:
                     v = layer._info.get(k, layer._meta.get(k))
-                if isinstance(v, bytes) and v.startswith(b'4-tP'):
+                if isinstance(v, bytes) and v.startswith(b"4-tP"):
                     try:
                         v = blob(v)
                     except TypeError:
                         pass
                 return v
-            
+
             keys = args.layer_keys
-            if keys == ['all']:
+            if keys == ["all"]:
                 if isinstance(layer, Layer):
                     keys = layer._info_keys()
                 else:
                     keys = (layer._info | layer._meta).keys()
             keys = list(keys)
             indent = max(map(len, keys))
-            yield '\n' + '\n'.join(
-                f'{k.rjust(indent)}: {display_blob(k)!r}' for k in keys
-            ) + '\n'
-        
+            yield (
+                "\n"
+                + "\n".join(f"{k.rjust(indent)}: {display_blob(k)!r}" for k in keys)
+                + "\n"
+            )
+
         if args.layer_info:
             yield repr(layer)
+
     args.display_func = display
+
 
 def display_tree(
     layer: PXDFile | Layer,
     func: Callable[[PXDFile | Layer], Generator[str, None, None]],
-    do_indent = True,
+    do_indent=True,
     level: int = 0,
 ):
-    info = ' '.join(func(layer))
+    info = " ".join(func(layer))
     if info:
         if do_indent:
-            print('    ' * level, info)
+            print("    " * level, info)
         else:
             print(info)
     if isinstance(layer, (PXDFile, GroupLayer)):
         for l in layer.children:
-            display_tree(l, func, do_indent, level+1)
+            display_tree(l, func, do_indent, level + 1)
 
 
-
-organise = parser.add_argument_group('Re-organise layers')
+organise = parser.add_argument_group("Re-organise layers")
 # organise.add_argument('--clean', '-c', action='store_true',
 #                     help='Provides -01ds to clean up a .pxd.')
 
-organise.add_argument('--empty', '-0', action='store_true',
-                    help='Remove groups with no contents.')
+organise.add_argument(
+    "--empty", "-0", action="store_true", help="Remove groups with no contents."
+)
 # organise.add_argument('--single-item', '-1', action='store_true',
 #                     help='Replace single-item groups with their'
 #                     ' contents, automagically ensuring the result'
@@ -141,8 +160,7 @@ organise.add_argument('--empty', '-0', action='store_true',
 #                     help="Rename text layers to their contents (if possible).")
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = parser.parse_args()
     # if args.clean:
     #     args.empty = args.single_item = args.decopy = args.strip = True
@@ -153,10 +171,9 @@ if __name__ == '__main__':
     if args.inside:
         layer = pxd.find(args.inside)
         if layer is None:
-            exit(404, f'No layer named {args.inside!r}')
+            exit(404, f"No layer named {args.inside!r}")
     else:
         layer = pxd
-    
 
     process_display(args)
     if args.do_display:
@@ -165,6 +182,8 @@ if __name__ == '__main__':
     if args.empty:
         with pxd:
             for layer in pxd.all_layers():
-                if not isinstance(layer, GroupLayer): continue
-                if len(layer.children): continue
+                if not isinstance(layer, GroupLayer):
+                    continue
+                if len(layer.children):
+                    continue
                 layer.delete()

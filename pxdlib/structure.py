@@ -1,13 +1,13 @@
-'''
+"""
 Helper functions for various Pixelmator structures.
-'''
+"""
 
 from struct import Struct
 
 from .errors import VersionError
 
-_MAGIC = b'4-tP'
-_LENGTH = Struct('<i')
+_MAGIC = b"4-tP"
+_LENGTH = Struct("<i")
 
 
 def _bare(fmt: str, mul=None) -> tuple:
@@ -25,33 +25,34 @@ def _bare(fmt: str, mul=None) -> tuple:
         if len(result) == 1:
             result = result[0]
         return result
+
     return packer, unpacker
 
 
 def string_unpack(data: bytes) -> str:
-    length, = _LENGTH.unpack(data[:4])
-    return data[4:4+length].decode().replace('\x00', '')
+    (length,) = _LENGTH.unpack(data[:4])
+    return data[4 : 4 + length].decode().replace("\x00", "")
 
 
 def string_pack(string: str) -> bytes:
     data = string.encode()
     buffer_bytes = -len(data) % 4
-    return _LENGTH.pack(len(data)) + data + b'\x00' * buffer_bytes
+    return _LENGTH.pack(len(data)) + data + b"\x00" * buffer_bytes
 
 
 def array_unpack(data: bytes) -> list:
-    length, = _LENGTH.unpack(data[4:8])
+    (length,) = _LENGTH.unpack(data[4:8])
     data = data[8:]
-    starts = data[:4*length]
-    data = data[4*length:]
+    starts = data[: 4 * length]
+    data = data[4 * length :]
 
     blobs = []
     for i in range(length):
         i *= 4
-        start, = _LENGTH.unpack(starts[i:i+4])
-        end = starts[i+4:i+8]
+        (start,) = _LENGTH.unpack(starts[i : i + 4])
+        end = starts[i + 4 : i + 8]
         if end:
-            end, = _LENGTH.unpack(end)
+            (end,) = _LENGTH.unpack(end)
         else:
             end = None
         blob = data[start:end]
@@ -67,9 +68,10 @@ def array_pack(blobs: list) -> bytes:
         pos += len(blob)
 
     return (
-        _LENGTH.pack(1) + _LENGTH.pack(len(blobs)) +
-        b''.join([_LENGTH.pack(i) for i in starts]) +
-        b''.join(blobs)
+        _LENGTH.pack(1)
+        + _LENGTH.pack(len(blobs))
+        + b"".join([_LENGTH.pack(i) for i in starts])
+        + b"".join(blobs)
     )
 
 
@@ -82,31 +84,31 @@ def kind_pack(data: str) -> bytes:
 
 
 _FORMATS = {
-    b'PTPt': _bare('>dd', mul=2),
-    b'PTSz': _bare('>dd', mul=2),
-    b'BDSz': _bare('<qq'),
-    b'PTFl': _bare('>d'),
-    b'LDOp': _bare('>d'),
-    b'Strn': (string_pack, string_unpack),
-    b'LOpc': _bare('<H'),
-    b'SI16': _bare('<hxx'),
-    b'Arry': (array_pack, array_unpack),
-    b'Guid': _bare('<hih'),
-    b'UI64': _bare('<Q'),
-    b'Blnd': (kind_pack, kind_unpack),
+    b"PTPt": _bare(">dd", mul=2),
+    b"PTSz": _bare(">dd", mul=2),
+    b"BDSz": _bare("<qq"),
+    b"PTFl": _bare(">d"),
+    b"LDOp": _bare(">d"),
+    b"Strn": (string_pack, string_unpack),
+    b"LOpc": _bare("<H"),
+    b"SI16": _bare("<hxx"),
+    b"Arry": (array_pack, array_unpack),
+    b"Guid": _bare("<hih"),
+    b"UI64": _bare("<Q"),
+    b"Blnd": (kind_pack, kind_unpack),
 }
 
 
 def _blob(blob: bytes):
     if not len(blob) > 12:
-        raise TypeError('Pixelmator blobs are more than 12 bytes! ')
+        raise TypeError("Pixelmator blobs are more than 12 bytes! ")
     magic = blob[:4]
     if not magic == _MAGIC:
         raise TypeError('Pixelmator blobs start with the magic number "4-tP".')
 
     kind = blob[4:8][::-1]
-    length, = _LENGTH.unpack(blob[8:12])
-    data = blob[12:12+length]
+    (length,) = _LENGTH.unpack(blob[8:12])
+    data = blob[12 : 12 + length]
     return kind, data
 
 
@@ -116,12 +118,12 @@ def blob(blob: bytes) -> object:
         _, unpacker = _FORMATS[kind]
         return unpacker(data)
     else:
-        raise TypeError(f'Unknown blob type {kind}.')
+        raise TypeError(f"Unknown blob type {kind}.")
 
 
 def make_blob(kind: bytes, *data) -> bytes:
     if kind not in _FORMATS:
-        raise TypeError(f'Unknown blob type {kind}.')
+        raise TypeError(f"Unknown blob type {kind}.")
     packer, unpacker = _FORMATS[kind]
     data = packer(*data)
     length = _LENGTH.pack(len(data))
@@ -129,19 +131,20 @@ def make_blob(kind: bytes, *data) -> bytes:
 
 
 def verb(data, version=1):
-    '''vercon, verstruct or verlist extractor'''
+    """vercon, verstruct or verlist extractor"""
     if isinstance(data, dict):
-        ver = data['version' if 'version' in data else 'structureVersion']
-        con_name = 'Container' if 'version' in data else 'Info'
-        for k in 'c', '':
-            key = 'versionSpecifi{}{}'.format(k, con_name)
+        ver = data["version" if "version" in data else "structureVersion"]
+        con_name = "Container" if "version" in data else "Info"
+        for k in "c", "":
+            key = "versionSpecifi{}{}".format(k, con_name)
             if key in data:
                 con = data[key]
                 break
         else:
             raise VersionError(
                 "Could not decipher structure in Pixelmator."
-                " Try updating `pxdlib` or contacting developer.")
+                " Try updating `pxdlib` or contacting developer."
+            )
     else:
         ver, con = data
     if ver != version:
@@ -154,15 +157,14 @@ def verb(data, version=1):
 
 
 def arbint(data: bytes):
-    '''Pop arbirary-length integers from a byte array.'''
+    """Pop arbirary-length integers from a byte array."""
     numbers: list[int] = []
     buffer: list[int] = []
     for d in data:
         buffer.append(d)
         if not (d & 0b10000000):
-            numbers.append(sum(
-                (x & 0b01111111) * (128**i)
-                for i, x in enumerate(buffer)
-            ))
+            numbers.append(
+                sum((x & 0b01111111) * (128**i) for i, x in enumerate(buffer))
+            )
             buffer.clear()
     return numbers

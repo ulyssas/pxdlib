@@ -1,6 +1,6 @@
-'''
+"""
 VideoLayer object, bound to a PXD file.
-'''
+"""
 
 from .layer import Layer
 

@@ -1,6 +1,6 @@
-'''
+"""
 PXDFile class, handling most database access.
-'''
+"""
 
 from os import popen
 from pathlib import Path
@@ -17,10 +17,10 @@ from .helpers import add_tuple_shortcuts
 from .layer import _LAYER_TYPES, Layer
 from .structure import blob, make_blob
 
-guides = namedtuple('guides', ('horizontal', 'vertical'))
+guides = namedtuple("guides", ("horizontal", "vertical"))
 
 
-@add_tuple_shortcuts('size', ('width', 'height'))
+@add_tuple_shortcuts("size", ("width", "height"))
 class PXDFile(Database):
     path: Path  # The path the PXD file or folder is saved at.
     _edit_dir: Path  # The path the PXD folder is editable at.
@@ -38,9 +38,9 @@ class PXDFile(Database):
         return f"PXDFile({repr(str(self.path))})"
 
     def __init__(self, path):
-        '''
+        """
         A PXD (Pixelmator Pro) file.
-        '''
+        """
 
         self.path = Path(path)
         self._edit_dir = self.path
@@ -48,11 +48,10 @@ class PXDFile(Database):
 
         if self._compressed:
             if not is_zipfile(self.path):
-                raise FileNotFoundError(
-                    "PXD malformed - is neither directory or .zip")
+                raise FileNotFoundError("PXD malformed - is neither directory or .zip")
 
             # Work in a temporary directory!
-            self._edit_dir = Path(mkdtemp('.pxd'))
+            self._edit_dir = Path(mkdtemp(".pxd"))
             with ZipFile(self.path) as zf:
                 zf.extractall(self._edit_dir)
 
@@ -64,37 +63,36 @@ class PXDFile(Database):
     @property
     def db_path(self):
         if not self.path.exists():
-            raise FileNotFoundError(f'{self.path} does not exist')
-        db_path = self._edit_dir / 'metadata.info'
+            raise FileNotFoundError(f"{self.path} does not exist")
+        db_path = self._edit_dir / "metadata.info"
         if not db_path.is_file():
             raise FileNotFoundError(f"{self.path} is not a valid .pxd file")
         return db_path
 
     def reload(self):
-        '''Reload any modifications.'''
+        """Reload any modifications."""
         self._assert(write=False)
         self._layer_cache = {}
 
         def keyval(table):
-            return dict(self._db.execute(
-                f"select key, value from {table};"
-            ).fetchall())
-        self._meta = keyval('document_meta')
-        self._info = keyval('document_info')
+            return dict(self._db.execute(f"select key, value from {table};").fetchall())
+
+        self._meta = keyval("document_meta")
+        self._info = keyval("document_info")
 
     def close(self):
         super().close()
         if self._compressed:
             self.path.unlink()
-            shutil.make_archive(self.path, 'zip', self._edit_dir)
-            shutil.move(str(self.path) + '.zip', self.path)
+            shutil.make_archive(self.path, "zip", self._edit_dir)
+            shutil.move(str(self.path) + ".zip", self.path)
 
     def __del__(self):
         # TODO: PermissionError??? yay...
         # if self._compressed:
         #     self._edit_dir.unlink(True)
 
-        if hasattr(self, '_db'):
+        if hasattr(self, "_db"):
             self._db.close()
 
     # Layer management
@@ -102,7 +100,7 @@ class PXDFile(Database):
     def _layer(self, ID):
         if ID in self._layer_cache:
             return self._layer_cache[ID]
-        typ, = self._db.execute(
+        (typ,) = self._db.execute(
             f"select type from document_layers where id = {ID};"
         ).fetchone()
         layer = _LAYER_TYPES[typ](self, ID)
@@ -110,26 +108,29 @@ class PXDFile(Database):
         return layer
 
     def _layers(self, parent=None, recurse=False) -> list[Layer]:
-        '''
+        """
         Return a list of layers that are children of the ID given.
         Give no ID to get the top-level layers.
         Specify recurse=True to get children recursively.
         Layers are always given in the user-visible order.
-        '''
+        """
         if parent is None:
-            cond = 'is null'
+            cond = "is null"
         elif isinstance(parent, Layer):
             cond = f' = "{parent._uuid}"'
         elif isinstance(parent, str):
             cond = f' = "{parent}"'
         else:
-            raise TypeError('ID must be a layer, UUID or None.')
+            raise TypeError("ID must be a layer, UUID or None.")
 
-        children = [self._layer(ID) for (ID, ) in self._db.execute(
-            "select id from document_layers"
-            f" where parent_identifier {cond}"
-            " order by index_at_parent asc;",
-        ).fetchall()]
+        children = [
+            self._layer(ID)
+            for (ID,) in self._db.execute(
+                "select id from document_layers"
+                f" where parent_identifier {cond}"
+                " order by index_at_parent asc;",
+            ).fetchall()
+        ]
         if recurse:
             tree = []
             for child in children:
@@ -147,7 +148,7 @@ class PXDFile(Database):
         return self._layers(recurse=True)
 
     def find(self, name: str, recurse=True):
-        '''Get the first child found with the given name.'''
+        """Get the first child found with the given name."""
         for l in self._layers(None, recurse):
             if l.name == name:
                 return l
@@ -155,11 +156,11 @@ class PXDFile(Database):
     # Misc helpers
 
     def copyto(self, path, overwrite=False):
-        '''
+        """
         Copy this PXDFile to a path, and return the copy.
 
         Make sure you pxd.close() so that all changes are saved.
-        '''
+        """
         self._assert(write=False)
 
         path = Path(path)
@@ -170,7 +171,8 @@ class PXDFile(Database):
                 path.unlink()
         elif path.is_dir() or path.is_file():
             raise FileExistsError(
-                'The .pxd file already exists. Pass overwrite=True, or delete it.')
+                "The .pxd file already exists. Pass overwrite=True, or delete it."
+            )
 
         if self.path.is_dir():
             shutil.copytree(self.path, path)
@@ -180,66 +182,61 @@ class PXDFile(Database):
 
     def _set(self, key, data, is_meta=False):
         self._assert(write=True)
-        table = 'document_meta' if is_meta else 'document_info'
+        table = "document_meta" if is_meta else "document_info"
         store = self._meta if is_meta else self._info
 
         store[key] = data
         c = self._db.cursor()
-        c.execute(
-            f'update {table} '
-            'set value = ? where key = ?',
-            (data, key)
-        )
+        c.execute(f"update {table} set value = ? where key = ?", (data, key))
 
     # Metadata
 
     @property
     def size(self) -> tuple:
-        '''
+        """
         The width and height of the document, in pixels.
-        '''
-        return blob(self._info['size'])
+        """
+        return blob(self._info["size"])
 
     @size.setter
     def size(self, size: tuple):
-        '''
+        """
         The width and height of the document, in pixels.
-        '''
+        """
         w, h = size
-        self._set('size', make_blob(b'BDSz', int(w), int(h)))
+        self._set("size", make_blob(b"BDSz", int(w), int(h)))
 
     @property
     def guides(self):
-        '''
+        """
         A list of the guides used for visual alignment.
 
         Given as the list of horizontal guides (0 = left)
         followed by vertical guides (0 = top).
-        '''
-        data = [blob(b) for b in blob(self._info['guides'])]
+        """
+        data = [blob(b) for b in blob(self._info["guides"])]
         return guides(
             list(sorted(r for _, r, vert in data if not vert)),
-            list(sorted(r for _, r, vert in data if vert))
+            list(sorted(r for _, r, vert in data if vert)),
         )
 
     @guides.setter
     def guides(self, guides):
         hor, ver = guides
         guides = [(0, r) for r in hor] + [(1, r) for r in ver]
-        data = make_blob(b'Arry', [
-            make_blob(b'Guid', 1, int(r), vert)
-            for (vert, r) in guides
-        ])
-        self._set('guides', data)
+        data = make_blob(
+            b"Arry", [make_blob(b"Guid", 1, int(r), vert) for (vert, r) in guides]
+        )
+        self._set("guides", data)
 
     @property
     def rulerOrigin(self):
-        '''
+        """
         The origin of the (visual) ruler.
-        '''
-        return blob(self._info['rulers-origin'])
+        """
+        return blob(self._info["rulers-origin"])
 
     @rulerOrigin.setter
     def rulerOrigin(self, origin):
         x, y = origin
-        self._set('rulers-origin', make_blob(b'PTPt', x, y))
+        self._set("rulers-origin", make_blob(b"PTPt", x, y))

@@ -3,28 +3,31 @@ from plistlib import UID, dumps, loads, FMT_BINARY
 from typing import Any
 
 from .nsobject import (
-    NSObject,   
+    NSObject,
     PlistDerefList,
     classisinstance,
 )
 from .nsprimitives import NSDictionary, NSArray, NSStringOrData
 
+
 class PlistFile(NSObject):
-    '''
+    """
     .plist as loaded from Pixelmator with $objects.
-    
+
     Currently read-only, yay dereferencing!
-    '''
+    """
 
     @classmethod
     def from_bytes(cls, data: bytes):
         return PlistFile(loads(data, fmt=FMT_BINARY))
+
     def to_bytes(self):
         return dumps(self._tree, fmt=FMT_BINARY)
 
     @classmethod
     def from_base64(cls, data: str):
         return cls.from_bytes(b64decode(data))
+
     def to_base64(self):
         return b64encode(self.to_bytes()).decode()
 
@@ -32,22 +35,22 @@ class PlistFile(NSObject):
     # TODO: Add test methods???
 
     def _object(self, id: UID):
-        return self._tree['$objects'][id]
+        return self._tree["$objects"][id]
 
     def __init__(self, object, **kwargs):
         self._tree = object
 
-        root_id = dict.__getitem__(object, '$top')['root']
+        root_id = dict.__getitem__(object, "$top")["root"]
         root = self._object(root_id)
         NSObject.__init__(self, root, self)
 
-        # root_id is usually 1
-    
+        # root_id is usually 1
+
     DEREF_MAPS: dict[str, type] = {
-        'NSDictionary': NSDictionary,
-        'NSArray': NSArray,
-        'NSString': NSStringOrData,
-        'NSData': NSStringOrData,
+        "NSDictionary": NSDictionary,
+        "NSArray": NSArray,
+        "NSString": NSStringOrData,
+        "NSData": NSStringOrData,
     }
 
     def _deref(self, value) -> NSObject | Any:

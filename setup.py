@@ -23,6 +23,6 @@ setuptools.setup(
         "Topic :: Multimedia :: Graphics :: Editors",
     ],
     keywords="Pixelmator pxd file image raster vector",
-    python_requires='>=3.6',
+    python_requires=">=3.6",
     install_requires=[],
 )
