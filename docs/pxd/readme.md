@@ -1,25 +1,29 @@
 # Pixelmator Pro `.pxd` format
 
-This is a description of the reverse-engineered format of Pixelmator Pro. It is not 100% complete, but will be updated as features are added; the text _(unknown)_ indicates data that needs to be further deciphered.
-
-
+This is a description of the reverse-engineered format of Pixelmator Pro. It is not 100% complete, but will be updated as features are added. Text _(unknown)_ indicates data that needs to be further deciphered.
 
 ## File format
 
-Pixelmator Pro makes use of files with the `.pxd` extension. In truth, these are sneakily folders in disguise, in the same vein as the `.app` files; macOS' Finder pleasantly treats them as if they are files, albeit with the "Show Package Contents" feature to get right into its contents"
+Pixelmator Pro makes use of files with the `.pxd` extension. For older versions (e.g. v2.0.6), these are sneaky folders in disguise (macOS Package), similar to `.app` files. macOS' Finder treats them as if they are files, with the "Show Package Contents" feature to get right into its contents. For newer versions, it's a zip archive with .pxd extension.
 
-- `QuickLook`, a folder containing two auto-generated previews: `Icon.tiff` (small) and `Thumbnail.tiff` (medium);
-- `data`, an optional folder containing an amount of files with UUID names, each containing data corresponding to raster (image) layers;
-- A [`metadata.info` file](#metadata).
+## Folder structure
 
+### `QuickLook` folder
 
+Contains two auto-generated previews: `Icon.*` (small) and `Thumbnail.*` (medium). Older version uses `tiff`, but newer version uses `webp`.
 
-## `metadata.info`
+### `data` folder
+
+(Optional) Contains raster files with UUID that matches corresponding layers. Detailed explaination is in here
+
+### `metadata.info`
+
 <a id="metadata"></a>
 
 The `metadata.info` file is an SQLite3 database. Outside of large media files, it stores info on:
-- the [**document**](docs/pxd/metadata.md): `document_meta`, `document_info`, and `storable_info`
-- [**layers**](docs/pxd/layer.md): `document_layers`, `layer_info`, and `layer_tiles`
+
+- the [**document**](metadata.md): `document_meta`, `document_info` and `storable_info`
+- [**layers**](layer.md): `document_layers`, `layer_info` and `layer_tiles`
 
 The SQL schema is as follows:
 
@@ -58,21 +62,19 @@ CREATE TABLE storable_info (
 );
 ```
 
+## Common data structures
 
-
-## Data structures
-
-In the data described above, we may encounter certain structures seemingly unique to the `.pxd` format. They are referenced here.
-
-
+In the data described above, we may encounter certain structures seemingly unique to the `.pxd` format. They are described here.
 
 ### Pixelmator blobs
+
 <a id="blobs"></a>
 
 Various "Pixelmator blobs" may be encountered in the `.pxd` format. They are little-endian, and have a twelve-byte header:
-- 4 bytes for their magic number, `4-tP`.
-- 4 bytes for their type, specified as an ASCII string given in reverse order;
-- 4 bytes for an integer specifying the length of the blob in bytes. Take care to make use of this -- blobs may contain up to 3 bits of junk data to align to a multiple of 4 bytes.
+
+- magic number (4 bytes): `4-tP`.
+- type (string, 4 bytes): specified as an ASCII string given in reverse order.
+- blob length (int, 4 bytes): Take care to make use of this -- blobs may contain up to 3 bits of junk data to align to a multiple of 4 bytes.
 
 Below are common blob types (see `__FORMAT` in `structure.py` for specifics:):
 
@@ -82,9 +84,8 @@ Below are common blob types (see `__FORMAT` in `structure.py` for specifics:):
 - `PTFl` and `LDop` are big-endian double-precision floats.
 - `Arry` is an array of other blobs – notably, its length will include these other blobs. It first contains two integers, the first nominally 1 and the second, _n_, the number of items in the array. The array is then followed by _n_ integers giving the starting positions of each entry after this header (i.e. the first is 0).
 
-
-
 ### JSON structures
+
 <a id="json"></a>
 
 Some structures in a Pixelmator document are encoded in UTF-8 JSON:

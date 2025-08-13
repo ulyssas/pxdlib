@@ -1,12 +1,13 @@
 # Pixelmator Pro (.pxd) format: Text layer styles
 
-In [text layers](/docs/pxd/layer.md#text), the layer info tag `text-stringData` contains a single entry: `StringNSCodingData`, a base-64 encoded binary PLIST, in which most of the text data is stored.
+In [text layers](layer.md#text), the layer info tag `text-stringData` contains a single entry: `StringNSCodingData`, a base-64 encoded binary PLIST, in which most of the text data is stored.
 
 ## Note on PLIST formatting
 
 As with all PLISTs, objects are stored under the `$objects` key, with a UID stored whenever an object is referenced. The internal `pxdlib.plist` library partially abstracts these details away by presenting structures that operate in a more Pythonic nature corresponding to the object type.
 
 In general, many objects will have a `$class` key, indicating their nature. Take note of some primitives, with obviously-named properties:
+
 - `NSString` and `NSMutableString` (`str`), with `NS.string`
 - `NSData` and `NSMutableData` (`bytes`), with `NS.data`
 - `NSArray` (`list`), with `NS.objects`
@@ -27,7 +28,7 @@ This contains, in and of itself, three properties:
 `NSAttributeInfo` (if present) is an `NSMutableData` providing an run-length encoding. In order, it interleaves the number of characters, then those characters' style index, and so on. For example:
 
 - The string `001110000` is encoded by [2 0 3 1 4 0]
-- The string `000011` followed by 257 `2`s is encoded as [4 0  2 1 129 2 2], where [129 2] decodes to 257 (see below).
+- The string `000011` followed by 257 `2`s is encoded as [4 0 2 1 129 2 2], where [129 2] decodes to 257 (see below).
 
 Encoders should take care to avoid reading from indices
 
@@ -51,9 +52,9 @@ For example, numbers may be encoded as:
 ```
 
 For completeness, here are some examples where a digit is styled according to its index (ie `a` has style 0, `b` style 1, etc):
-- The string `001110000` is encoded by [2 0 3 1 4 0]
-- The string `000011` followed by 257 `2`s is encoded as [4 0  2 1 129 2 2], where [129 2] decodes to 257.
 
+- The string `001110000` is encoded by [2 0 3 1 4 0]
+- The string `000011` followed by 257 `2`s is encoded as [4 0 2 1 129 2 2], where [129 2] decodes to 257.
 
 ## `NSAttributes` (text styles)
 
@@ -72,11 +73,11 @@ The `NSAttributes` property is an `NSDict` (or list thereof) with a variety of p
 
 - `font-scale` (`int`): seems always to be 1 ???
 - `font-style-data` is a JSON-encoded UTF-8 vercon with the following properties:
+
   - `s` (`number`): The font size (also in `NSFontSizeAttribute` below!)
   - `n` (`str`): The font (also in `NSFontNameAttribute` below!)
   - `b` (`number`): 1 iff bold.
   - `i` (`number`): 1 iff italic.
-
 
 - `color` is an `NSDict`. It has the following keys:
   - `NSRGB` (`bytes`): The color in RGBA. Space-separated floats (ASCII) suffixed with a null byte.
@@ -86,11 +87,11 @@ The `NSAttributes` property is an `NSDict` (or list thereof) with a variety of p
 - `paragraph-style`: see below
 - `font`: see below
 
-
 ### `com.pixelmatorteam.textkit.attribute.paragraph-style`
 
 This is an `NSMutableParagraphStyle`.
 It always has the following properties:
+
 - `NSTextLists` ???
 - `NSTextBlocks` ???
 - `NSDefaultTabInterval` ???
@@ -98,15 +99,16 @@ It always has the following properties:
 - `NSTabStops` ???
 
 It may optionally have the following properties:
-- `NSFirstLineHeadIndent`, `NSHeadIndent` and `NSTailIndent` (`float`, default `0.0`): Integer number of pixels for *Indents* option under *First*, *Left* and *Right*. This provides horizontal padding to the document. `NSTailIndent` is always below 0; the others above.
-- `NSLineHeightMultiple` (`float`, default `1.0`): The line height.
-- `NSParagraphSpacing` and `NSParagraphSpacingBefore` (`float`, default `1.0`): the *Before Paragraph* and *After Paragraph* spacing, respectively.
-- `NSAlignment` (`int`, default `0`): The horizontal alignment. 0 for left-aligned, 1 right-aligned, 2 centre-aligned, 3 justified
 
+- `NSFirstLineHeadIndent`, `NSHeadIndent` and `NSTailIndent` (`float`, default `0.0`): Integer number of pixels for _Indents_ option under _First_, _Left_ and _Right_. This provides horizontal padding to the document. `NSTailIndent` is always below 0; the others above.
+- `NSLineHeightMultiple` (`float`, default `1.0`): The line height.
+- `NSParagraphSpacing` and `NSParagraphSpacingBefore` (`float`, default `1.0`): the _Before Paragraph_ and _After Paragraph_ spacing, respectively.
+- `NSAlignment` (`int`, default `0`): The horizontal alignment. 0 for left-aligned, 1 right-aligned, 2 centre-aligned, 3 justified
 
 ### `com.pixelmatorteam.textkit.attribute.font`
 
 This is an `NSFontDescriptor`. It has two properties:
+
 - `NSFontDescriptorOptions` (`int`): Nominally `1 << 31`. May have other properties ???
 - `NSFontDescriptorAttributes`, an `NSDict` with keys:
   - `NSFontSizeAttribute` (`float`): The current font size
